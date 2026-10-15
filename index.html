@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="zh" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PandaVis · 可视化 Pandas 数据分析平台</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐼</text></svg>">
+</head>
+<body>
+
+<!-- ===================== Top navigation ===================== -->
+<header class="navbar">
+  <div class="brand">
+    <span class="logo">🐼</span>
+    <div class="brand-text">
+      <strong data-i18n="app.logo">PandaVis</strong>
+      <span data-i18n="app.subtitle">像使用 pandas 一样探索数据 —— 无需编写代码</span>
+    </div>
+  </div>
+  <nav class="nav-actions">
+    <div class="dropdown" id="export-dd">
+      <button class="btn" id="btn-export" data-i18n="nav.export">导出数据</button>
+      <div class="dropdown-menu" id="export-menu">
+        <button id="export-csv" data-i18n="export.csv">导出 CSV</button>
+        <button id="export-json" data-i18n="export.json">导出 JSON</button>
+      </div>
+    </div>
+    <span class="nav-sep"></span>
+    <button class="btn icon" id="btn-undo" data-i18n-title="nav.undo" title="撤销">↶</button>
+    <button class="btn icon" id="btn-redo" data-i18n-title="nav.redo" title="重做">↷</button>
+    <button class="btn" id="btn-reset" data-i18n="nav.reset">重置数据</button>
+    <span class="nav-sep"></span>
+    <button class="btn primary" id="btn-tour" data-i18n="nav.tour">功能导览</button>
+    <button class="btn icon" id="btn-help" data-i18n-title="nav.help" title="帮助">?</button>
+    <button class="btn icon" id="btn-theme" data-i18n-title="nav.theme" title="切换主题">🌙</button>
+    <button class="btn" id="btn-lang">English</button>
+  </nav>
+</header>
+
+<div class="layout">
+  <!-- ===================== Sidebar ===================== -->
+  <aside class="sidebar" id="sidebar">
+    <div class="side-search">
+      <input type="search" id="op-search" data-i18n-ph="side.search" placeholder="搜索功能…">
+    </div>
+
+    <!-- Data section (static) -->
+    <section class="op-sec" data-sec="data">
+      <h3 class="sec-title" data-i18n="sec.data">数据</h3>
+      <div class="op-card open" id="card-data">
+        <div class="op-body">
+          <label class="fld">
+            <span data-i18n="data.builtin">内置数据集</span>
+            <select id="builtin-select"></select>
+          </label>
+          <p class="hint" id="builtin-desc"></p>
+          <button class="btn primary block" id="btn-load-builtin" data-i18n="data.load">加载此数据集</button>
+          <hr class="sep">
+          <label class="fld"><span data-i18n="data.upload">上传文件</span></label>
+          <p class="hint" data-i18n="data.upload.hint">支持 CSV / TSV / JSON / Excel，点击选择或拖拽文件到页面</p>
+          <button class="btn block" id="btn-upload" data-i18n="data.upload.btn">选择文件</button>
+          <input type="file" id="file-input" accept=".csv,.tsv,.txt,.json,.xlsx,.xls" hidden>
+          <div class="btn-row">
+            <button class="btn half" id="btn-url" data-i18n="data.url">从 URL 加载</button>
+            <button class="btn half" id="btn-paste" data-i18n="data.paste">粘贴数据</button>
+          </div>
+          <hr class="sep">
+          <div class="current-data" id="current-data"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Dynamic op sections (filled by app.js) -->
+    <section class="op-sec" data-sec="inspect"><h3 class="sec-title" data-i18n="sec.inspect">查看与统计</h3><div class="op-list" id="sec-inspect"></div></section>
+    <section class="op-sec" data-sec="clean"><h3 class="sec-title" data-i18n="sec.clean">数据清洗</h3><div class="op-list" id="sec-clean"></div></section>
+    <section class="op-sec" data-sec="filter"><h3 class="sec-title" data-i18n="sec.filter">筛选与排序</h3><div class="op-list" id="sec-filter"></div></section>
+    <section class="op-sec" data-sec="transform"><h3 class="sec-title" data-i18n="sec.transform">转换与聚合</h3><div class="op-list" id="sec-transform"></div></section>
+  </aside>
+
+  <!-- ===================== Main ===================== -->
+  <main class="main">
+    <div class="tabs" id="tabs">
+      <button class="tab active" data-tab="table" data-i18n="tab.table">数据表格</button>
+      <button class="tab" data-tab="output" data-i18n="tab.output">结果输出</button>
+      <button class="tab" data-tab="chart" data-i18n="tab.chart">可视化</button>
+      <button class="tab" data-tab="code" data-i18n="tab.code">pandas 代码</button>
+      <button class="tab" data-tab="history" data-i18n="tab.history">操作历史</button>
+    </div>
+
+    <!-- table pane -->
+    <div class="pane active" id="pane-table">
+      <div class="table-toolbar">
+        <span class="tt-left">
+          <label data-i18n="table.page">每页</label>
+          <select id="page-size"><option>25</option><option selected>50</option><option>100</option><option>200</option></select>
+          <label data-i18n="table.rowsunit">行</label>
+        </span>
+        <span class="tt-mid" id="table-total"></span>
+        <span class="tt-right">
+          <button class="btn sm" id="page-prev" data-i18n="table.prev">上一页</button>
+          <span id="page-info"></span>
+          <button class="btn sm" id="page-next" data-i18n="table.next">下一页</button>
+        </span>
+      </div>
+      <div class="table-wrap" id="table-wrap"></div>
+    </div>
+
+    <!-- output pane -->
+    <div class="pane" id="pane-output">
+      <div class="output-toolbar" id="output-toolbar" hidden>
+        <strong id="output-title"></strong>
+        <span class="spacer"></span>
+        <button class="btn sm" id="output-download" data-i18n="output.download">下载结果 CSV</button>
+        <button class="btn sm primary" id="output-use" data-i18n="output.use">将结果设为当前数据</button>
+      </div>
+      <div class="output-empty" id="output-empty" data-i18n="output.empty">在左侧运行「查看与统计」或「转换」功能后，结果将显示在这里。</div>
+      <div class="table-wrap" id="output-wrap"></div>
+    </div>
+
+    <!-- chart pane -->
+    <div class="pane" id="pane-chart">
+      <div class="chart-bar" id="chart-bar">
+        <label class="ch-field">
+          <span data-i18n="chart.type">图表类型</span>
+          <select id="ch-type">
+            <option value="bar" data-i18n="chart.bar">柱状图</option>
+            <option value="barh" data-i18n="chart.barh">条形图</option>
+            <option value="line" data-i18n="chart.line">折线图</option>
+            <option value="area" data-i18n="chart.area">面积图</option>
+            <option value="pie" data-i18n="chart.pie">饼图</option>
+            <option value="scatter" data-i18n="chart.scatter">散点图</option>
+            <option value="hist" data-i18n="chart.hist">直方图</option>
+            <option value="box" data-i18n="chart.box">箱线图</option>
+            <option value="heat" data-i18n="chart.heat">热力图</option>
+          </select>
+        </label>
+        <label class="ch-field" data-for="bar barh line area pie scatter">
+          <span data-i18n="chart.x">X 轴（类别/时间）</span>
+          <select id="ch-x"></select>
+        </label>
+        <label class="ch-field" data-for="bar barh line area pie scatter hist box">
+          <span data-i18n="chart.y">Y 轴（数值）</span>
+          <select id="ch-y"></select>
+        </label>
+        <label class="ch-field" data-for="bar barh line area pie">
+          <span data-i18n="chart.agg">聚合方式</span>
+          <select id="ch-agg"></select>
+        </label>
+        <label class="ch-field" data-for="bar barh line area scatter box">
+          <span data-i18n="chart.groupby">分组（可选）</span>
+          <select id="ch-group"></select>
+        </label>
+        <label class="ch-field" data-for="hist">
+          <span data-i18n="chart.bins">分箱数</span>
+          <input type="number" id="ch-bins" value="15" min="2" max="60">
+        </label>
+        <label class="ch-field" data-for="heat">
+          <span data-i18n="chart.heat.mode">热力图数据</span>
+          <select id="ch-heat-mode">
+            <option value="corr" data-i18n="chart.heat.corr">相关系数矩阵</option>
+            <option value="pivot" data-i18n="chart.heat.pivot">双类别透视</option>
+          </select>
+        </label>
+        <label class="ch-field" data-for="heat pivot-only">
+          <span data-i18n="op.pivot.index">行 (index)</span>
+          <select id="ch-heat-index"></select>
+        </label>
+        <label class="ch-field" data-for="heat pivot-only">
+          <span data-i18n="op.pivot.columns">列 (columns)</span>
+          <select id="ch-heat-columns"></select>
+        </label>
+        <label class="ch-field" data-for="heat pivot-only">
+          <span data-i18n="op.pivot.values">值 (values)</span>
+          <select id="ch-heat-values"></select>
+        </label>
+        <label class="ch-field">
+          <span data-i18n="chart.title">图表标题</span>
+          <input type="text" id="ch-title" data-i18n-ph="chart.title.ph" placeholder="留空自动生成">
+        </label>
+        <div class="ch-actions">
+          <button class="btn primary" id="ch-render" data-i18n="chart.render">生成图表</button>
+          <button class="btn" id="ch-download" data-i18n="chart.download">下载 PNG</button>
+        </div>
+      </div>
+      <div class="chart-empty" id="chart-empty" data-i18n="chart.empty">选择图表类型与数据列后点击「生成图表」。</div>
+      <div class="chart-box" id="chart-box"></div>
+    </div>
+
+    <!-- code pane -->
+    <div class="pane" id="pane-code">
+      <div class="code-toolbar">
+        <button class="btn sm primary" id="code-copy" data-i18n="code.copy">复制全部代码</button>
+      </div>
+      <pre class="code-view" id="code-view"></pre>
+    </div>
+
+    <!-- history pane -->
+    <div class="pane" id="pane-history">
+      <div class="history-list" id="history-list"></div>
+    </div>
+
+    <!-- status bar -->
+    <footer class="statusbar">
+      <span id="st-dataset"></span>
+      <span class="st-sep">·</span>
+      <span id="st-shape"></span>
+      <span class="st-sep">·</span>
+      <span id="st-memory"></span>
+      <span class="st-sep">·</span>
+      <span id="st-step"></span>
+      <span class="spacer"></span>
+      <span class="st-note" data-i18n="footer.made">PandaVis · 可视化 Pandas 数据分析平台 · 数据可视化课程作业</span>
+    </footer>
+  </main>
+</div>
+
+<!-- ===================== Modals ===================== -->
+<div class="modal-mask" id="modal-url" hidden>
+  <div class="modal">
+    <h3 data-i18n="modal.url.title">从 URL 加载数据</h3>
+    <p class="hint" data-i18n="data.url.hint">输入 CSV/JSON 文件的直链地址</p>
+    <input type="url" id="url-input" data-i18n-ph="data.url.placeholder" placeholder="https://example.com/data.csv">
+    <div class="modal-actions">
+      <button class="btn" data-close data-i18n="modal.cancel">取消</button>
+      <button class="btn primary" id="url-confirm" data-i18n="data.url.btn">加载</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="modal-paste" hidden>
+  <div class="modal">
+    <h3 data-i18n="modal.paste.title">粘贴数据</h3>
+    <p class="hint" data-i18n="data.paste.hint">直接粘贴 CSV 文本或 JSON 数组</p>
+    <textarea id="paste-input" rows="9" spellcheck="false" placeholder="a,b,c&#10;1,2,3&#10;4,5,6"></textarea>
+    <div class="modal-actions">
+      <button class="btn" data-close data-i18n="modal.cancel">取消</button>
+      <button class="btn primary" id="paste-confirm" data-i18n="data.paste.btn">解析并加载</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="modal-help" hidden>
+  <div class="modal wide">
+    <h3 data-i18n="help.title">功能一览 · pandas 功能对照</h3>
+    <p class="hint" data-i18n="help.intro"></p>
+    <div class="help-table-wrap"><table class="help-table" id="help-table"></table></div>
+    <div class="modal-actions">
+      <button class="btn primary" data-close data-i18n="modal.close">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- drag & drop overlay -->
+<div class="drag-mask" id="drag-mask" hidden>
+  <div class="drag-box" data-i18n="upload.drag">将文件拖拽到此处即可加载</div>
+</div>
+
+<!-- tour -->
+<div class="tour-mask" id="tour-mask" hidden>
+  <div class="tour-spot" id="tour-spot"></div>
+  <div class="tour-card" id="tour-card">
+    <div class="tour-head">
+      <strong id="tour-title"></strong>
+      <span class="tour-step" id="tour-stepnum"></span>
+    </div>
+    <p id="tour-text"></p>
+    <div class="tour-actions">
+      <button class="btn sm" id="tour-skip" data-i18n="tour.skip">跳过导览</button>
+      <span class="spacer"></span>
+      <button class="btn sm" id="tour-prev" data-i18n="tour.prev">上一步</button>
+      <button class="btn sm primary" id="tour-next" data-i18n="tour.next">下一步</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-box" id="toast-box"></div>
+
+<script src="lib/echarts.min.js"></script>
+<script src="lib/xlsx.full.min.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/datasets.js"></script>
+<script src="js/dataframe.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
